@@ -1,7 +1,8 @@
 
-# KNAP: Kevin's Neovim Auto-Previewer
+# KNAP: Kilian's Neovim Auto-Previewer
 
 KNAP is a lua plugin for the [neovim](https://neovim.io/) text editor (version 0.7.0+) that provides a user-configurable interface for launching an “auto-refreshing” or “self-updating” preview of the results of the file being edited in neovim as defined by an arbitrary processing command, and a suitable viewing application of your choice.
+It is a fork from [frabjous/knap](https://github.com/frabjous/knap) with more customizable options that I personally like to use.
 
 It was designed with markup-language documents like LaTeX or markdown (or even just HTML) in mind. KNAP allows you to use the PDF viewer or browser of your choice to see the results in real time. Here is a sample of its use with a LaTeX file and its PDF output (here viewed in [llpp](https://github.com/moosotc/llpp)):
 
@@ -270,6 +271,7 @@ The precise values are listed below, here using the lua syntax (though the synta
 
 ```lua
 {
+    outdir = "none",
     htmloutputext = "html",
     htmltohtml = "none",
     htmltohtmlviewerlaunch = "falkon %outputfile%",
@@ -320,11 +322,37 @@ Note that it is the *root* document’s extension that determines the routine us
 
 However, in such a case, it might be better to use “`touch %outputfile%`” for the main processing command rather than simply “none” if the viewer relies on detecting changes to trigger an auto-refresh. Only the CSS file is being changed, so the touch command is needed to mark the HTML file as changed as well, so the refresh will be triggered.
 
-## Buffer-Specific Settings / XeLaTeX Detection Example
+## Buffer-Specific Settings
 
 If you wish to use different settings for *some* but not all files with a given extension, this can be done in your neovim initialization file, by calling a function that places options in the `b:knap_settings` dictionary variable. (Note: use `b:` here rather than `g:` to avoid affecting all buffers in the neovim instance.)
 
-As an example, here is a snippet you can place in `~/.config/nvim/init.vim` that will detect if a LaTeX file should be processed with `xelatex` rather than `pdflatex`. It does so if "`xelatex`" occurs in the first five lines (such as in a comment), or if the `mathspec`, `fontspec` or `unicode-math` package is loaded.
+### Makefile detection example
+As an example, here is a snippet you can place in `~/.config/nvim/init.lua`
+that will detect a Makefile in the root-directory found by texlab. And use it
+to compile LaTex-files instead. It will also specify an output directory where
+the Makefile will place the PDF as well as other generated files.
+
+```lua
+local scan = require'plenary.scandir'
+
+local group = vim.api.nvim_create_augroup('knap_autocmds', {clear = true})
+
+_G.makefilecheck = function()
+  local root_dir = vim.lsp.buf.list_workspace_folders()[1]
+  if (scan.scan_dir(root_dir, { depth = 1, search_pattern = 'Makefile'})) then
+      local knapsettings = vim.b.knap_settings or {}
+      knapsettings["textopdf"] = 'make -C ' .. root_dir;
+      knapsettings["outdir"] = root_dir ..  '/build';
+      vim.b.knap_settings = knapsettings
+  end
+end
+vim.api.nvim_create_autocmd(
+  {'LspAttach'},
+  {pattern = {'*.tex'}, group = group, callback = makefilecheck})
+```
+
+### XeLaTeX Detection Example
+As another example, here is a snippet you can place in `~/.config/nvim/init.vim` that will detect if a LaTeX file should be processed with `xelatex` rather than `pdflatex`. It does so if "`xelatex`" occurs in the first five lines (such as in a comment), or if the `mathspec`, `fontspec` or `unicode-math` package is loaded.
 
 ```vimscript
 function XeLaTeXCheck()
@@ -339,7 +367,7 @@ function XeLaTeXCheck()
         endif
     endif
     if (l:xelatex == 1)
-        if !exists("b:knap_settings") 
+        if !exists("b:knap_settings")
             let b:knap_settings = {}
         endif
         let b:knap_settings["textopdf"] = "xelatex -interaction=batchmode -halt-on-error -synctex=1 %docroot%"
@@ -366,7 +394,7 @@ _G.xelatexcheck = function()
     end
     if (isxelatex) then
         local knapsettings = vim.b.knap_settings or {}
-        knapsettings["textopdf"] = 
+        knapsettings["textopdf"] =
             'xelatex -interaction=batchmode -halt-on-error -synctex=1 %docroot%'
         vim.b.knap_settings = knapsettings
     end
@@ -711,10 +739,10 @@ Since moving a file is a much quicker process than writing it to begin with, thi
 
 ## License
 
-[GPLv3](https://www.gnu.org/licenses/gpl-3.0.html). 
+[GPLv3](https://www.gnu.org/licenses/gpl-3.0.html).
 
 KNAP is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful, but *without any warranty*; without even the implied warranty of *merchantability* or *fitness for a particular purpose*. See the [GNU General Public License](https://www.gnu.org/licenses/gpl-3.0.html) for more details.
 
-© 2022 Kevin C. Klement. <klement@umass.edu>
+© 2023 Kilian Mio.

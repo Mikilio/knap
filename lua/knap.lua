@@ -1,9 +1,9 @@
 -----------------------------------------
--- KNAP: Kevin's Neovim Auto-Previewer --
+-- KNAP: Kilian's Neovim Auto-Previewer --
 -----------------------------------------
 --[[
     Neovim script for previewing files in customizable ways
-    Copyright (C) 2019–2022 Kevin C. Klement
+    Copyright (C) 2019–2022 Kilian Mio
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -67,6 +67,7 @@ function buffer_init()
     bsettings = vim.tbl_extend("keep", bsettings, gsettings)
     -- default settings if neither in buffer nor global settings
     local dsettings = {
+        outdir = "none",
         htmloutputext = "html",
         htmltohtml = "none",
         htmltohtmlviewerlaunch = "falkon %outputfile%",
@@ -174,7 +175,7 @@ function fill_in_cmd(cmd)
     end
     if (vim.b.knap_outputfile) then
         cmd = cmd:gsub('%%outputfile%%',
-            '"' .. basename(vim.b.knap_outputfile) .. '"')
+            '"' .. vim.b.knap_outputfile .. '"')
     end
     if (vim.b.knap_viewerpid) then
         cmd = cmd:gsub('%%pid%%', vim.b.knap_viewerpid)
@@ -269,21 +270,27 @@ end
 -- get the name of the output file for the routine based on the
 -- document root and the output extension set for it
 function get_outputfile()
-    -- make sure docroot is set
-    if not (vim.b.knap_docroot) then
-        err_msg("Could not read document root filename. Is it set?")
-        return 'unknown'
-    end
-    -- get extension of docroot and its output extension
-    local docrootext = get_extension_or_ft(vim.b.knap_docroot)
-    if not (vim.b.knap_settings[docrootext .. 'outputext']) then
-        err_msg("Could not determine output type. Is one set for " ..
-            docrootext .. " files?")
-        return 'unknown'
-    end
-    local outputext = vim.b.knap_settings[docrootext .. 'outputext'];
-    -- derive outputname from docroot bys swapping extensions
-    return vim.b.knap_docroot:gsub('%.[^%.]*$','.' .. outputext)
+  -- make sure docroot is set
+  if not (vim.b.knap_docroot) then
+    err_msg("Could not read document root filename. Is it set?")
+    return 'unknown'
+  end
+  -- get extension of docroot and its output extension
+  local docrootext = get_extension_or_ft(vim.b.knap_docroot)
+  if not (vim.b.knap_settings[docrootext .. 'outputext']) then
+    err_msg("Could not determine output type. Is one set for " ..
+      docrootext .. " files?")
+    return 'unknown'
+  end
+  local outputext = vim.b.knap_settings[docrootext .. 'outputext'];
+  -- derive outputname from docroot bys swapping extensions
+  local outputfile = vim.b.knap_docroot:gsub('%.[^%.]*$','.' .. outputext)
+  -- check if an output directory was specified
+  local outputdir = vim.b.knap_settings['outdir']
+  if not (outputdir == 'none' ) then
+    outputfile = outputfile:gsub('^.*/',outputdir)
+  end
+  return outputfile
 end
 
 -- see if a process is still running
@@ -407,14 +414,14 @@ end
 -- process stderr returned from processing routine
 function on_stderr(jobid, data, event)
     -- concat new stderr output to what has been collected
-    vim.b.knap_process_stderr = (vim.b.knap_process_stderr or '') .. 
+    vim.b.knap_process_stderr = (vim.b.knap_process_stderr or '') ..
         table.concat(data,'')
 end
 
 -- process stdout returned from processing routine
 function on_stdout(jobid, data, event)
     -- concat new stdout output to what has been collected
-    vim.b.knap_process_stdout = (vim.b.knap_process_stdout or '') .. 
+    vim.b.knap_process_stdout = (vim.b.knap_process_stdout or '') ..
         table.concat(data,'')
 end
 
@@ -598,7 +605,7 @@ function stop_autopreviewing(report)
         return
     end
     vim.b.knap_autopreviewing = false
-    if (report) then 
+    if (report) then
         print('autopreview stopped')
     end
 end
