@@ -19,6 +19,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     ]]--
 
+package.path = package.path .. "luaposix"
+local stdlib = require("posix.stdlib")
 -- shorter name for api
 local api = vim.api
 -- set variable for update timer
@@ -67,7 +69,7 @@ function buffer_init()
     bsettings = vim.tbl_extend("keep", bsettings, gsettings)
     -- default settings if neither in buffer nor global settings
     local dsettings = {
-        outdir = "none",
+        outputdir = "none",
         htmloutputext = "html",
         htmltohtml = "none",
         htmltohtmlviewerlaunch = "falkon %outputfile%",
@@ -176,6 +178,8 @@ function fill_in_cmd(cmd)
     if (vim.b.knap_outputfile) then
         cmd = cmd:gsub('%%outputfile%%',
             '"' .. vim.b.knap_outputfile .. '"')
+        cmd = cmd:gsub('%%outputdir%%',
+            '"' .. dirname(vim.b.knap_outputfile) .. '"')
     end
     if (vim.b.knap_viewerpid) then
         cmd = cmd:gsub('%%pid%%', vim.b.knap_viewerpid)
@@ -286,10 +290,11 @@ function get_outputfile()
   -- derive outputname from docroot bys swapping extensions
   local outputfile = vim.b.knap_docroot:gsub('%.[^%.]*$','.' .. outputext)
   -- check if an output directory was specified
-  local outputdir = vim.b.knap_settings['outdir']
+  local outputdir = vim.b.knap_settings['outputdir']
   if not (outputdir == 'none' ) then
     outputfile = outputfile:gsub('^.*/',outputdir)
-  end
+  else
+    outputfile = outputfile:gsub('^.*/', stdlib.mkdtemp())
   return outputfile
 end
 
