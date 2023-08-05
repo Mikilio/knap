@@ -19,8 +19,16 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     ]]--
 
-package.path = package.path .. "luaposix"
-local stdlib = require("posix.stdlib")
+local success, stdlib = pcall(require, "posix.stdlib")
+
+if not success then
+    error([[
+luaposix could not be loaded.
+Preview in tmpfiles will not work.
+Choose another preview method or add luaposix to luaPackages in the nvim module.
+Error details: ]] .. stdlib)
+end
+
 -- shorter name for api
 local api = vim.api
 -- set variable for update timer
@@ -38,10 +46,10 @@ function attach_to_changes()
     local succ = api.nvim_buf_attach(0,
         false,
         {
-            on_lines = function(s, b, ct, fl, ll, nll, bc, dcp, dcu)
+            on_lines = function(_, _, _, _, _, _, _, _, _)
                 return restart_timer()
             end,
-            on_reload = function(s, b)
+            on_reload = function(_, _)
                 return restart_timer()
             end
         }
@@ -235,7 +243,7 @@ function get_docroot()
     -- look through first five lines for 'root = '
     local fivelines = vim.api.nvim_buf_get_lines(0, 0, 5, false)
     local specified=''
-    for l,line in ipairs(fivelines) do
+    for _,line in ipairs(fivelines) do
         if line:match('[Rr][Oo][Oo][Tt]%s*=') then
             specified=line:gsub('^.*[Rr][Oo][Oo][Tt]%s*=%s*','')
                 :gsub('%s*$','')
@@ -266,7 +274,7 @@ end
 function get_extension_or_ft(fn)
     local ext=get_extension(fn)
     if (ext == '') then
-        return vim.opt_local.filetype:get() or ''
+        return vim.bo.filetype() or ''
     end
     return ext
 end
@@ -294,7 +302,13 @@ function get_outputfile()
   if not (outputdir == 'none' ) then
     outputfile = outputfile:gsub('^.*/',outputdir)
   else
-    outputfile = outputfile:gsub('^.*/', stdlib.mkdtemp())
+    local tmpdir, err = stdlib.mkdtemp("/tmp/knap_preview-XXXXXX")
+    if not (tmpdir) then
+      err_msg("Could not create temporary directory: " .. err)
+      return nil
+    end
+    outputfile = outputfile:gsub('^.*/', tmpdir .. "/")
+  end
   return outputfile
 end
 
@@ -312,7 +326,7 @@ function is_running(pid)
     local procname = vim.b.knap_viewer_launch_cmd:gsub('.*;%s*','')
     procname = procname:gsub('.*&&%s*','')
     procname = procname:gsub('%s.*','')
-    local running = os.execute('pgrep "' .. procname .. '" > /dev/null 2>&1')
+    running = os.execute('pgrep "' .. procname .. '" > /dev/null 2>&1')
     return (running == 0)
 end
 
@@ -342,14 +356,20 @@ function launch_viewer()
         lcmd = 'cd "' .. dirname(vim.b.knap_docroot) .. '" && ' .. lcmd
     end
     local lproc = io.popen(lcmd)
+    if not (lproc) or (lproc == '') then
+      err_msg("Could not launch viewer.")
+      mark_viewer_closed()
+      return
+    end
+
     -- try to read pid
     local vpid = lproc:read()
     lproc:close()
     -- if couldn't read pid then it was a failure
     if not (vpid) or (vpid == '') then
-        err_msg("Could not launch viewer.")
-        mark_viewer_closed()
-        return
+      err_msg("Could not launch viewer.")
+      mark_viewer_closed()
+      return
     end
     -- set variables for viewer
     vim.b.knap_viewerpid = tonumber(vpid)
@@ -369,7 +389,7 @@ function mark_viewer_closed()
 end
 
 -- what happens when a processing routine is finished running
-function on_exit(jobid, exitcode, event)
+function on_exit(_, exitcode, _)
     -- close job channel if can
     pcall(function()
         vim.fn.chanclose(vim.b.knap_process_job)
@@ -406,9 +426,14 @@ function on_exit(jobid, exitcode, event)
                         .. shorterrcmd
                 end
                 local errproc = io.popen(shorterrcmd)
-                local errmsg = vim.trim(errproc:read("*a"))
-                errproc:close()
-                err_msg('ERR: ' .. errmsg)
+                if not (errproc) or errproc =='' then
+                  -- print very generic error
+                  err_msg('Process unsuccessful; returned exit code ' .. tostring(exitcode))
+                else
+                  local errmsg = vim.trim(errproc:read("*a"))
+                  errproc:close()
+                  err_msg('ERR: ' .. errmsg)
+                end
             end
         end
     end
@@ -417,14 +442,14 @@ function on_exit(jobid, exitcode, event)
 end
 
 -- process stderr returned from processing routine
-function on_stderr(jobid, data, event)
+function on_stderr(_, data, _)
     -- concat new stderr output to what has been collected
     vim.b.knap_process_stderr = (vim.b.knap_process_stderr or '') ..
         table.concat(data,'')
 end
 
 -- process stdout returned from processing routine
-function on_stdout(jobid, data, event)
+function on_stdout(_, data, _)
     -- concat new stdout output to what has been collected
     vim.b.knap_process_stdout = (vim.b.knap_process_stdout or '') ..
         table.concat(data,'')
