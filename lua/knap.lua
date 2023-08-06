@@ -669,15 +669,13 @@ function toggle_autopreviewing()
     end
 end
 
-local function delete_temp_dirs()
-    local temp_dirs = vim.fn.globpath('/tmp/knap_preview', '*', 1, 1)
-    for _, dir in ipairs(temp_dirs) do
-        vim.fn.delete(dir, 'rf')
-    end
-end
+
 
 --clean up tempdirs
-vim.api.nvim_create_autocmd( {'VimLeavePre'}, {callback = delete_temp_dirs} )
+vim.api.nvim_create_autocmd( {'VimLeavePre'}, {
+  group = vim.api.nvim_create_augroup('knap_def', {}),
+  callback = function () os.execute("rm -r /tmp/knap_preview*") end
+})
 
 -- export these functions
 return {
