@@ -40,6 +40,7 @@ local knap_max_col_width = (vim.v.echospace - 1)
 -- make the function names local
 local attach_to_changes, basename, buffer_init, check_to_process_again, close_viewer, dirname, err_msg, fill_in_cmd, forward_jump, get_docroot, get_extension, get_extension_or_ft, get_outputfile, is_running, jump, launch_viewer, mark_viewer_closed, on_exit, on_stderr, on_stdout, process_once, refresh_viewer, restart_timer, set_variables, start_autopreviewing, start_processing, stop_autopreviewing, toggle_autopreviewing
 
+
 -- this function attaches listeners to buffer events for changes to
 -- the text starts the timer to update the preview
 function attach_to_changes()
@@ -80,12 +81,12 @@ function buffer_init()
         outputdir = "none",
         htmloutputext = "html",
         htmltohtml = "none",
-        htmltohtmlviewerlaunch = "cd %outputdir%; live-server --quiet --open=%outputfile% --watch=%outputfile% --wait=800",
+        htmltohtmlviewerlaunch = "cd %outputdir%; cp %css% style.css; live-server --quiet --open=%outputfile% --watch=%outputfile% --wait=800",
         htmltohtmlviewerrefresh = "none",
         mdoutputext = "html",
-        mdtohtml = "pandoc --standalone -s %docroot% -o %outputpath%",
-        mdtohtmlviewerlaunch = "cd %outputdir%; live-server --quiet --open=%outputfile% --watch=%outputfile% --wait=800",
-        mdtohtmlviewerrefresh = "",
+        mdtohtml = "pandoc --standalone -c style.css -s %docroot% -o %outputpath%",
+        mdtohtmlviewerlaunch = "cd %outputdir%; cp %css% style.css; live-server --quiet --open=%outputfile% --watch=%outputfile% --wait=800",
+        mdtohtmlviewerrefresh = "none",
         mdtopdf = "pandoc -s %docroot% -o %outputpath%",
         mdtopdfviewerlaunch = "sioyek %outputpath%",
         mdtopdfviewerrefresh = "none",
@@ -95,6 +96,7 @@ function buffer_init()
         textopdfviewerrefresh = "none",
         textopdfforwardjump = "sioyek --inverse-search 'nvim --headless -es --cmd \"lua require('\"'\"'knaphelper'\"'\"').relayjump('\"'\"'%servername%'\"'\"','\"'\"'%1'\"'\"',%2,%3)\"' --reuse-window --forward-search-file %srcfile% --forward-search-line %line% %outputpath%",
         textopdfshorterror = "A=%outputpath% ; LOGFILE=\"${A%.pdf}.log\" ; rubber-info \"$LOGFILE\" 2>&1 | head -n 1",
+        css = "none",
         delay = 250
     }
     -- merge settings; buffer and global take precedent over default
@@ -203,6 +205,11 @@ function fill_in_cmd(cmd)
     if (vim.v.servername) then
         cmd = cmd:gsub('%%servername%%', vim.v.servername)
     end
+
+    if (vim.b.knap_css) then
+        cmd = cmd:gsub('%%css%%', '"' .. vim.b.knap_css .. '"')
+    end
+
     return cmd
 end
 
@@ -564,6 +571,8 @@ function set_variables()
         return false
     end
     vim.b.knap_viewer_launch_cmd = fill_in_cmd(vlcmd)
+    -- set css
+    vim.b.knap_css = vim.b.knap_settings['css']
     -- everything worked OK?
     return true
 end
@@ -672,8 +681,8 @@ end
 
 
 --clean up tempdirs
-vim.api.nvim_create_autocmd( {'VimLeavePre'}, {
-  group = vim.api.nvim_create_augroup('knap_def', {}),
+api.nvim_create_autocmd( {'VimLeavePre'}, {
+  group = api.nvim_create_augroup('knap_def', {}),
   callback = function () os.execute("rm -r /tmp/knap_preview*") end
 })
 
