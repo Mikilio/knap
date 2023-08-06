@@ -136,7 +136,20 @@ function close_viewer()
         buffer_init()
     end
     if (vim.b.knap_viewerpid) and (is_running(vim.b.knap_viewerpid)) then
-        local waskilled = os.execute('pkill -P ' ..
+        local child_pids = {}
+        local ps_cmd = io.popen("ps -o pid= --ppid " .. tostring(vim.b.knap_viewerpid))
+        if (ps_cmd) then
+          for line in ps_cmd:lines() do
+              table.insert(child_pids, tonumber(line))
+          end
+          ps_cmd:close()
+          -- Terminate child processes
+          for _, child_pid in ipairs(child_pids) do
+              os.execute("kill -TERM " .. child_pid)
+          end
+        end
+        -- Terminate the parent process
+        local waskilled = os.execute("kill -TERM " ..
             tostring(vim.b.knap_viewerpid) .. ' > /dev/null 2>&1')
         -- above returns exit code of kill command
         if not (waskilled == 0) then
@@ -182,7 +195,7 @@ function fill_in_cmd(cmd)
         cmd = cmd:gsub('%%outputdir%%',
             '"' .. dirname(vim.b.knap_outputfile) .. '"')
         cmd = cmd:gsub('%%outputpath%%',
-            '"' .. vim.b.knap_outputfile) .. '"')
+            '"' .. vim.b.knap_outputfile .. '"')
     end
     if (vim.b.knap_viewerpid) then
         cmd = cmd:gsub('%%pid%%', vim.b.knap_viewerpid)
