@@ -142,7 +142,7 @@ Unless you are fully satisfied with the defaults (unlikely), you will need to co
 let g:knap_settings = {
     \ "texoutputext": "pdf",
     \ "textopdf": "pdflatex -synctex=1 -halt-on-error -interaction=batchmode %docroot%",
-    \ "textopdfviewerlaunch": "mupdf %outputfile%",
+    \ "textopdfviewerlaunch": "mupdf %outputpath%",
     \ "textopdfviewerrefresh": "kill -HUP %pid%"
 \ }
 ```
@@ -153,7 +153,7 @@ In lua you can assign `vim.b.knap_settings` or `vim.g.knap_settings` to an equiv
 local gknapsettings = {
     texoutputext = "pdf",
     textopdf = "pdflatex -synctex=1 -halt-on-error -interaction=batchmode %docroot%",
-    textopdfviewerlaunch = "mupdf %outputfile%",
+    textopdfviewerlaunch = "mupdf %outputpath%",
     textopdfviewerrefresh = "kill -HUP %pid%"
 }
 vim.g.knap_settings = gknapsettings
@@ -315,7 +315,7 @@ This might be useful for other sorts of tricks as well. For example, you could s
 
 Note that it is the *root* document’s extension that determines the routine used, so for the above CSS example, the routine is simply `htmltohtml`, and no separate `csstohtml` routine is required. The output file is also considered to have the same base name as the root document, not the edited document.
 
-However, in such a case, it might be better to use “`touch %outputfile%`” for the main processing command rather than simply “none” if the viewer relies on detecting changes to trigger an auto-refresh. Only the CSS file is being changed, so the touch command is needed to mark the HTML file as changed as well, so the refresh will be triggered.
+However, in such a case, it might be better to use “`touch %outputpath%`” for the main processing command rather than simply “none” if the viewer relies on detecting changes to trigger an auto-refresh. Only the CSS file is being changed, so the touch command is needed to mark the HTML file as changed as well, so the refresh will be triggered.
 
 ## Buffer-Specific Settings
 
@@ -407,7 +407,7 @@ To use this option, add a key for `[routine]bufferasstdin` to the settings dicti
 
 ```vimscript
 let g:knap_settings = {
-    \ "textopdf" : "pdflatex -jobname \"$(basename -s .pdf %outputfile%)\" -halt-on-error",
+    \ "textopdf" : "pdflatex -jobname \"$(basename -s .pdf %outputpath%)\" -halt-on-error",
     \ "textopdfbufferasstdin" : v:true
 \ }
 
@@ -419,7 +419,7 @@ For processing markdown, pandoc is happy to read from stdin as well, but you wil
 
 ```lua
 local gknapsettings = {
-    mdtohtml = "pandoc -f markdown --standalone -o %outputfile%",
+    mdtohtml = "pandoc -f markdown --standalone -o %outputpath%",
     mdtohtmlbufferasstdin = true
 }
 vim.g.knap_settings = gknapsettings
@@ -445,9 +445,9 @@ Since it is default, you need not put these settings in your `init.vim` unless y
 
 ```vimscript
 let g:knap_settings = {
-    \ "textopdfviewerlaunch": "sioyek --inverse-search 'nvim --headless -es --cmd \"lua require('\"'\"'knaphelper'\"'\"').relayjump('\"'\"'%servername%'\"'\"','\"'\"'%1'\"'\"',%2,0)\"' --new-window %outputfile%",
+    \ "textopdfviewerlaunch": "sioyek --inverse-search 'nvim --headless -es --cmd \"lua require('\"'\"'knaphelper'\"'\"').relayjump('\"'\"'%servername%'\"'\"','\"'\"'%1'\"'\"',%2,0)\"' --new-window %outputpath%",
     \ "textopdfviewerrefresh": "none",
-    \ "textopdfforwardjump": "sioyek --inverse-search 'nvim --headless -es --cmd \"lua require('\"'\"'knaphelper'\"'\"').relayjump('\"'\"'%servername%'\"'\"','\"'\"'%1'\"'\"',%2,0)\"' --reuse-window --forward-search-file %srcfile% --forward-search-line %line% %outputfile%"
+    \ "textopdfforwardjump": "sioyek --inverse-search 'nvim --headless -es --cmd \"lua require('\"'\"'knaphelper'\"'\"').relayjump('\"'\"'%servername%'\"'\"','\"'\"'%1'\"'\"',%2,0)\"' --reuse-window --forward-search-file %srcfile% --forward-search-line %line% %outputpath%"
 }
 ```
 
@@ -469,13 +469,13 @@ Suggested settings:
 
 ```vimscript
 let g:knap_settings = {
-    \ "mdtopdfviewerlaunch": "llpp %outputfile%",
+    \ "mdtopdfviewerlaunch": "llpp %outputpath%",
     \ "mdtopdfviewerrefresh": "kill -HUP %pid%",
-    \ "markdowntopdfviewerlaunch": "llpp %outputfile%",
+    \ "markdowntopdfviewerlaunch": "llpp %outputpath%",
     \ "markdowntopdfviewerrefresh": "kill -HUP %pid%",
-    \ "textopdfviewerlaunch": "PIPE=$XDG_RUNTIME_DIR/llpp-remote.pipe ; ([[ -p $PIPE ]] || mkfifo -m 600 $PIPE) && exec llpp -remote $PIPE %outputfile%",
+    \ "textopdfviewerlaunch": "PIPE=$XDG_RUNTIME_DIR/llpp-remote.pipe ; ([[ -p $PIPE ]] || mkfifo -m 600 $PIPE) && exec llpp -remote $PIPE %outputpath%",
     \ "textopdfviewerrefresh": "(echo reload > $XDG_RUNTIME_DIR/llpp-remote.pipe)",
-    \ "textopdfforwardjump": "synctex view -i %line%:%column%:%srcfile% -o %outputfile% -x \"echo goto %{page} %{h} %{v} > $XDG_RUNTIME_DIR/llpp-remote.pipe\""
+    \ "textopdfforwardjump": "synctex view -i %line%:%column%:%srcfile% -o %outputpath% -x \"echo goto %{page} %{h} %{v} > $XDG_RUNTIME_DIR/llpp-remote.pipe\""
 \ }
 ```
 
@@ -503,11 +503,11 @@ It can be refreshed by sending the HUP signal. Here are example settings for a `
 
 ```vimscript
 let g:knap_settings = {
-    \ "mdtopdfviewerlaunch": "mupdf %outputfile%",
+    \ "mdtopdfviewerlaunch": "mupdf %outputpath%",
     \ "mdtopdfviewerrefresh": "kill -HUP %pid%",
-    \ "markdowntopdfviewerlaunch": "mupdf %outputfile%",
+    \ "markdowntopdfviewerlaunch": "mupdf %outputpath%",
     \ "markdowntopdfviewerrefresh": "kill -HUP %pid%",
-    \ "textopdfviewerlaunch": "mupdf %outputfile%",
+    \ "textopdfviewerlaunch": "mupdf %outputpath%",
     \ "textopdfviewerrefresh": "kill -HUP %pid%",
     \ "textopdfforwardjump" : "false"
 \ }
@@ -529,9 +529,9 @@ Example settings in `init.vim` for a `textopdf` routine:
 
 ```vimscript
 let g:knap_settings = {
-    \ "textopdfviewerlaunch": "qpdfview --unique --instance neovim %outputfile%",
+    \ "textopdfviewerlaunch": "qpdfview --unique --instance neovim %outputpath%",
     \ "textopdfviewerrefresh": "none",
-    \ "textopdfforwardjump" : "qpdfview --unique --instance neovim %outputfile%#src:%srcfile%:%line%:%column%"
+    \ "textopdfforwardjump" : "qpdfview --unique --instance neovim %outputpath%#src:%srcfile%:%line%:%column%"
 \ }
 ```
 
@@ -555,9 +555,9 @@ Suggested settings for `textopdf`:
 
 ```vimscript
 let g:knap_settings = {
-    \ "textopdfviewerlaunch": "zathura --synctex-editor-command 'nvim --headless -es --cmd \"lua require('\"'\"'knaphelper'\"'\"').relayjump('\"'\"'%servername%'\"'\"','\"'\"'%{input}'\"'\"',%{line},0)\"' %outputfile%",
+    \ "textopdfviewerlaunch": "zathura --synctex-editor-command 'nvim --headless -es --cmd \"lua require('\"'\"'knaphelper'\"'\"').relayjump('\"'\"'%servername%'\"'\"','\"'\"'%{input}'\"'\"',%{line},0)\"' %outputpath%",
     \ "textopdfviewerrefresh": "none",
-    \ "textopdfforwardjump": "zathura --synctex-forward=%line%:%column%:%srcfile% %outputfile%"
+    \ "textopdfforwardjump": "zathura --synctex-forward=%line%:%column%:%srcfile% %outputpath%"
 \ }
 ```
 
@@ -571,9 +571,9 @@ The capabilities and commands for Okular are quite similar to those for qpdfview
 
 ```vimscript
 let g:knap_settings = {
-    \ "textopdfviewerlaunch": "okular --unique %outputfile%",
+    \ "textopdfviewerlaunch": "okular --unique %outputpath%",
     \ "textopdfviewerrefresh": "none",
-    \ "textopdfforwardjump" : "okular --unique %outputfile%'#src:%line% '%srcfile%"
+    \ "textopdfforwardjump" : "okular --unique %outputpath%'#src:%line% '%srcfile%"
 \ }
 ```
 
@@ -595,7 +595,7 @@ You can then use the settings such as these:
 
 ```vimscript
 let g:knap_settings = {
-    \ "textopdfviewerlaunch": "apvlv %outputfile%",
+    \ "textopdfviewerlaunch": "apvlv %outputpath%",
     \ "texttopdfviewerrefresh": "none",
     \ "textopdfforwardjump" : "false"
 \ }
@@ -613,9 +613,9 @@ Sample configuration:
 
 ```vimscript
 let g:knap_settings = {
-    \ "textopdfviewerlaunch": "evince %outputfile%",
+    \ "textopdfviewerlaunch": "evince %outputpath%",
     \ "textopdfviewerrefresh": "none",
-    \ "textopdfforwardjump" : "synctex view -i %line%:%column%:%srcfile% -o %outputfile% -x 'evince -i %{page+1} %outputfile%'",
+    \ "textopdfforwardjump" : "synctex view -i %line%:%column%:%srcfile% -o %outputpath% -x 'evince -i %{page+1} %outputpath%'",
 \ }
 ```
 
@@ -633,7 +633,7 @@ The KDE Falkon browser (formerly qupzilla) is my preferred solution, as it is a 
 
 ```vimscript
 let g:knap_settings = {
-    \ "mdtohtmlviewerlaunch" : "falkon %outputfile%",
+    \ "mdtohtmlviewerlaunch" : "falkon %outputpath%",
     \ "mdtohtmlviewerrefresh" : "none",
 \ }
 ```
@@ -655,10 +655,10 @@ You can set qutebrowser to start this userscript as part of the viewer launch co
 
 ```vimscript
 let g:knap_settings = {
-    \ "mdtohtmlviewerlaunch" : "SRC=%srcfile%; ID=\"${SRC//[^A-Za-z0-9]/_-_-}\"; qutebrowser --target window %outputfile% \":spawn --userscript knap-userscript.lua $ID\"",
+    \ "mdtohtmlviewerlaunch" : "SRC=%srcfile%; ID=\"${SRC//[^A-Za-z0-9]/_-_-}\"; qutebrowser --target window %outputpath% \":spawn --userscript knap-userscript.lua $ID\"",
     \ "mdtohtmlviewerrefresh" : "SRC=%srcfile%; ID=\"${SRC//[^A-Za-z0-9]/_-_-}\"; echo ':run-with-count '$(</tmp/knap-$ID-qute-tabindex)' reload -f' > \"$(</tmp/knap-$ID-qute-fifo)\"",
     \ "htmltohtml" : "none",
-    \ "htmltohtmlviewerlaunch" : "SRC=%srcfile%; ID=\"${SRC//[^A-Za-z0-9]/_-_-}\"; qutebrowser --target window %outputfile% \":spawn --userscript knap-userscript.lua $ID\"",
+    \ "htmltohtmlviewerlaunch" : "SRC=%srcfile%; ID=\"${SRC//[^A-Za-z0-9]/_-_-}\"; qutebrowser --target window %outputpath% \":spawn --userscript knap-userscript.lua $ID\"",
     \ "htmltohtmlviewerrefresh" : "SRC=%srcfile%; ID=\"${SRC//[^A-Za-z0-9]/_-_-}\"; echo ':run-with-count '$(</tmp/knap-$ID-qute-tabindex)' reload -f' > \"$(</tmp/knap-$ID-qute-fifo)\"",
 \ }
 ```
@@ -677,11 +677,11 @@ With knap, if you wish to avoid adding this tag to your actual file, you can use
 
 ```vimscript
 let g:knap_settings = {
-    \ "htmltohtml": "A=%outputfile% ; B=\"${A%.html}-preview.html\" ; sed 's/<\\/head>/<meta http-equiv=\"refresh\" content=\"1\" ><\\/head>/' \"$A\" > \"$B\"",
-    \ "htmltohtmlviewerlaunch": "A=%outputfile% ; B=\"${A%.html}-preview.html\" ; firefox \"$B\"",
+    \ "htmltohtml": "A=%outputpath% ; B=\"${A%.html}-preview.html\" ; sed 's/<\\/head>/<meta http-equiv=\"refresh\" content=\"1\" ><\\/head>/' \"$A\" > \"$B\"",
+    \ "htmltohtmlviewerlaunch": "A=%outputpath% ; B=\"${A%.html}-preview.html\" ; firefox \"$B\"",
     \ "htmltohtmlviewerrefresh": "none",
-    \ "mdtohtml": "A=%outputfile% ; B=\"${A%.html}-preview.html\" ; pandoc --standalone %docroot% -o \"$A\" && sed 's/<\\/head>/<meta http-equiv=\"refresh\" content=\"1\" ><\\/head>/' \"$A\" > \"$B\" ",
-    \ "mdtohtmlviewerlaunch": "A=%outputfile% ; firefox \"${A%.html}-preview.html\"",
+    \ "mdtohtml": "A=%outputpath% ; B=\"${A%.html}-preview.html\" ; pandoc --standalone %docroot% -o \"$A\" && sed 's/<\\/head>/<meta http-equiv=\"refresh\" content=\"1\" ><\\/head>/' \"$A\" > \"$B\" ",
+    \ "mdtohtmlviewerlaunch": "A=%outputpath% ; firefox \"${A%.html}-preview.html\"",
     \ "mdtohtmlviewerrefresh": "none",
 \ }
 ```
@@ -697,9 +697,9 @@ One could then utilize settings such as the following:
 
 ```vimspcript
 let g:knap_settings = {
-    "htmltohtmlviewerlaunch": "live-server --quiet --browser=firefox --open=%outputfile% --watch=%outputfile% --wait=800",
+    "htmltohtmlviewerlaunch": "live-server --quiet --browser=firefox --open=%outputpath% --watch=%outputpath% --wait=800",
     "htmltohtmlviewerrefresh": "none",
-    "mdtohtmlviewerlaunch": "live-server --quiet --browser=firefox --open=%outputfile% --watch=%outputfile% --wait=800",
+    "mdtohtmlviewerlaunch": "live-server --quiet --browser=firefox --open=%outputpath% --watch=%outputpath% --wait=800",
     "mdtohtmlviewerrefresh": "none",
 \ }
 ```
@@ -720,13 +720,13 @@ If you encounter this kind of difficulty, one thing to consider is raising the p
 Another method that often alleviates such problems involves setting the processing command to write to a temporary file and only moving it to the desired location when the processing is completed. For example, suppose your original processing command were something like this:
 
 ```
-"mdtohtml" : "pandoc --citeproc --bibliography=mybib.yaml %docroot% > %outputfile%",
+"mdtohtml" : "pandoc --citeproc --bibliography=mybib.yaml %docroot% > %outputpath%",
 ```
 
 Consider changing it to this:
 
 ```
-"mdtohtml" : "tempout=\"/tmp/$(basename %outputfile%)\" ; pandoc --citeproc --bibliography=mybib.yaml > \"$tempout\" && mv \"$tempout\" %outputfile%",
+"mdtohtml" : "tempout=\"/tmp/$(basename %outputpath%)\" ; pandoc --citeproc --bibliography=mybib.yaml > \"$tempout\" && mv \"$tempout\" %outputpath%",
 
 ```
 
