@@ -175,8 +175,6 @@ When invoked, the appropriate substitutions are made for these variables:
  %srcfile%     the filename (full path) of the file being edited
  %docroot%     the base name of the root document that needs to be processed*
  %outputfile%  the base name of the output file**
- %ouptdir%     the directory name of the output file
- %outputpath%  the full path of the output file
  %pid%         the process id of the viewer program, after launch
  %line%        the line number of the cursor position in neovim
  %column%      the column number of the cursor position in neovim
@@ -281,10 +279,10 @@ local dsettings = {
     mdoutputext = "html",
     mdtohtml = "pandoc --standalone -s %docroot% -o %outputpath%",
     mdtohtmlviewerlaunch = "cd %outputdir%; live-server --quiet --open=%outputfile% --watch=%outputfile% --wait=800",
-    mdtohtmlviewerrefresh = "pandoc --standalone -s %docroot% -o %outputpath%",
+    mdtohtmlviewerrefresh = "",
     mdtopdf = "pandoc -s %docroot% -o %outputpath%",
     mdtopdfviewerlaunch = "sioyek %outputpath%",
-    mdtopdfviewerrefresh = "pandoc -s %docroot% -o %outputpath%",
+    mdtopdfviewerrefresh = "none",
     texoutputext = "pdf",
     textopdf = "pdflatex -interaction=batchmode -halt-on-error -synctex=1 %docroot%",
     textopdfviewerlaunch = "sioyek --inverse-search 'nvim --headless -es --cmd \"lua require('\"'\"'knaphelper'\"'\"').relayjump('\"'\"'%servername%'\"'\"','\"'\"'%1'\"'\"',%2,%3)\"' --new-window %outputpath%",
